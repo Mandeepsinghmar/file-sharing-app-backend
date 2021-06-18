@@ -1,2 +1,4 @@
+# ignoring these files
 /node_modules
 .env
+
