@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import File from '../models/File'
 import {UploadApiResponse, v2 as cloudinary} from 'cloudinary'
+import https from 'https'
 
 
 const router = express.Router();
@@ -39,10 +40,50 @@ router.post('/upload',upload.single('myFile'), async (req,res)=>{
           fileUrl: secure_url,
           fileType:format,
       })
-    return res.status(200).json(file)
+     res.status(200).json({
+        id: file._id,
+        downloadPageLink: `${process.env.API_BASE_ENDPOINT_CLIENT}download/${file._id}`,
+      })
     }catch(err){
-return res.status(500).json({message: 'Server error'})
+ res.status(500).json({message: 'Server error'})
     }
 })
+
+router.get('/:id',async (req,res)=>{
+try{
+const id = req.params.id;
+ const file = await File.findById(id)
+if(!file){
+    return res.status(404).json({message: 'Opps! file does not exist!'})
+}
+const {fileName,fileType, fileSize} = file;
+return res.status(200).json({
+    name: fileName,
+    sizeInBytes:fileSize,
+    format:fileType,
+    id
+})
+
+}catch(err){
+    console.log(err)
+    return res.status(500).json({message: 'Server error'})
+}
+})
+
+router.get('/:id/download',async (req,res)=>{
+    try{
+    const id = req.params.id;
+     const file = await File.findById(id)
+    if(!file){
+        return res.status(404).json({message: 'Opps! file does not exist!'})
+    }
+https.get(file.fileUrl, (filestream)=>filestream.pipe(res))
+    
+    }catch(err){
+        console.log(err)
+        return res.status(500).json({message: 'Server error'})
+    }
+    })
+
 
 export default router;
